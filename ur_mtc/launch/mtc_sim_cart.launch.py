@@ -14,27 +14,10 @@ def generate_launch_description():
         .trajectory_execution(file_path="config/moveit_controllers.yaml")
         .to_moveit_configs()
     )
-    # Pipeline Parameters for Constrained Planning
-    '''
-    moveit_config.planning_pipelines["ompl"]["ur_manipulator"][
-        "enforce_constrained_state_space"
-    ] = True
-    
-    moveit_config.planning_pipelines["ompl"]["ur_manipulator"][
-        "projection_evaluation"
-    ] = "joints(should_pan_joint,shoulder_lift_joint,elbow_joint)"
-    
-    moveit_config.planning_pipelines["ompl"]["manipulator_gripper"][
-        "enforce_constrained_state_space"
-    ] = True
-    
-    moveit_config.planning_pipelines["ompl"]["manipulator_gripper"][
-        "projection_evaluation"
-    ] = "joints(should_pan_joint,shoulder_lift_joint,elbow_joint)"
-    '''
+
     mtc_sim = Node(
         package="ur_mtc",
-        executable="mtc_sim",
+        executable="mtc_sim_cart",
         output="screen",
         parameters=[
             moveit_config.robot_description,

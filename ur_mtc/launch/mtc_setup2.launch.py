@@ -1,45 +1,27 @@
-import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
-from launch.launch_description_sources import AnyLaunchDescriptionSource
 from launch_ros.actions import Node
+from launch.actions import RegisterEventHandler, TimerAction
+from launch.event_handlers import OnProcessStart
 from moveit_configs_utils import MoveItConfigsBuilder
 
 
 def generate_launch_description():
     # Configs
     moveit_config = (
-        MoveItConfigsBuilder("name", package_name="r85_moveit2_config")
+        MoveItConfigsBuilder("name", package_name="rg2_moveit_config")
         .planning_pipelines(pipelines=["ompl", "chomp", "pilz_industrial_motion_planner"])
-
         .robot_description(file_path="config/name.urdf.xacro")
         .trajectory_execution(file_path="config/moveit_controllers.yaml")
         .sensors_3d(file_path="config/sensors_3d.yaml")
         .to_moveit_configs()
     )
-    # Pipeline Parameters for Constrained Planning
-    '''
-    moveit_config.planning_pipelines["ompl"]["ur_manipulator"][
-        "enforce_constrained_state_space"
-    ] = True
     
-    moveit_config.planning_pipelines["ompl"]["ur_manipulator"][
-        "projection_evaluation"
-    ] = "joints(should_pan_joint,shoulder_lift_joint,elbow_joint)"
-    
-    moveit_config.planning_pipelines["ompl"]["manipulator_gripper"][
-        "enforce_constrained_state_space"
-    ] = True
-    
-    moveit_config.planning_pipelines["ompl"]["manipulator_gripper"][
-        "projection_evaluation"
-    ] = "joints(should_pan_joint,shoulder_lift_joint,elbow_joint)"
-    '''
     # RVIZ Config
     rviz_config_file = (
         get_package_share_directory("ur_mtc") + "/launch/moveit.rviz"
     )
+    
     # Load  ExecuteTaskSolutionCapability so we can execute found solutions in simulation
     move_group_capabilities = {"capabilities": "move_group/ExecuteTaskSolutionCapability"}
     planning_scene_monitor_params = {
@@ -53,11 +35,14 @@ def generate_launch_description():
     octomap_config = {'octomap_frame': 'world', 
                       'octomap_resolution': 0.01,
                       'max_range': 5.0}
-    
-    
-    # Constraints Path to Generated File for Move Group Node
-    #constraints = {"move_group/constraint_approximations_path": "$(find ur_mtc)/config"}
-    
+    # Attempt To Change Default Planner
+    moveit_config.planning_pipelines["ompl"]["ur_manipulator"][
+        "projection_evaluation"
+    ] = "joints(should_pan_joint,shoulder_lift_joint,elbow_joint)"
+    moveit_config.planning_pipelines["ompl"]["ur_manipulator"][
+        "multi_query_planning_enabled"
+    ] = True
+
     # Move Group Node
     move_group_node = Node(
         package="moveit_ros_move_group",
@@ -68,7 +53,6 @@ def generate_launch_description():
             move_group_capabilities,
             planning_scene_monitor_params,
             octomap_config,
-            #constraints,
             {"use_sim_time": True},
         ],
     )
@@ -84,22 +68,45 @@ def generate_launch_description():
             moveit_config.robot_description_semantic,
             moveit_config.robot_description_kinematics,
             moveit_config.planning_pipelines,
+            moveit_config.sensors_3d,
         ],
     )
-    # Static TF TODO: REMOVE IF FINAL VERSION HAS NO CONSTRAINTS
-    static_tf = Node(
-        package="tf2_ros",
-        executable="static_transform_publisher",
-        name="static_transform_publisher",
-        output="log",
-        arguments=["0.0", "0.0", "0.0", "0.0", "0.0", "3.14159", "base_link", "invert_ref"], 
-        # X Y Z Yay Pitch Roll Parent Child 
+
+    delay_rviz = RegisterEventHandler(
+        event_handler=OnProcessStart(
+            target_action=move_group_node,
+            on_start=[
+                TimerAction(
+                    period=5.0,
+                    actions=[rviz_node],
+                )
+            ]
+        )
     )
 
-    return LaunchDescription(
-        [
-            static_tf,
-            move_group_node,
-            rviz_node,
-        ]
-    )
+    return LaunchDescription([
+        move_group_node,
+        delay_rviz,       
+    ])
+
+'''
+    # Pipeline Parameters for Constrained Planning
+    moveit_config.planning_pipelines["ompl"]["ur_manipulator"][
+        "enforce_constrained_state_space"
+    ] = True
+    
+    moveit_config.planning_pipelines["ompl"]["ur_manipulator"][
+        "projection_evaluation"
+    ] = "joints(should_pan_joint,shoulder_lift_joint,elbow_joint)"
+    
+    moveit_config.planning_pipelines["ompl"]["manipulator_gripper"][
+        "enforce_constrained_state_space"
+    ] = True
+    
+    moveit_config.planning_pipelines["ompl"]["manipulator_gripper"][
+        "projection_evaluation"
+    ] = "joints(should_pan_joint,shoulder_lift_joint,elbow_joint)"
+
+    # Constraints Path to Generated File for Move Group Node
+    #constraints = {"move_group/constraint_approximations_path": "$(find ur_mtc)/config"}
+'''

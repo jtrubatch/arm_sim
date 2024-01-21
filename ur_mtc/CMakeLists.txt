@@ -11,19 +11,36 @@ find_package(rclcpp REQUIRED)
 find_package(moveit_core REQUIRED)
 find_package(moveit_task_constructor_core REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
+find_package(pcl_ros REQUIRED)
+find_package(pcl_msgs REQUIRED)
+find_package(pcl_conversions REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 add_executable(mtc_sim src/mtc_sim.cpp)
-ament_target_dependencies(mtc_sim rclcpp moveit_core moveit_task_constructor_core moveit_ros_planning_interface)
+ament_target_dependencies(mtc_sim rclcpp moveit_core moveit_task_constructor_core moveit_ros_planning_interface pcl_ros pcl_conversions pcl_msgs sensor_msgs)
 
 target_include_directories(mtc_sim PUBLIC
 $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 $<INSTALL_INTERFACE:include>)
+
 target_compile_features(mtc_sim PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 
 install(TARGETS mtc_sim
 		DESTINATION lib/${PROJECT_NAME})
 
-install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
+add_executable(mtc_perception src/mtc_sim_perception.cpp)
+ament_target_dependencies(mtc_perception rclcpp pcl_ros pcl_conversions pcl_msgs sensor_msgs moveit_ros_planning_interface moveit_core)
+
+include_directories(include ${PCL_INCLUDE_DIRS} /opt/ros/humble/include/pcl_msgs)
+target_compile_features(mtc_perception PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+    
+install(TARGETS mtc_perception
+    DESTINATION lib/${PROJECT_NAME})
+
+install(DIRECTORY 
+        launch 
+        config 
+        DESTINATION share/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -36,5 +53,5 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
-
+ament_export_include_directories(include)
 ament_package()

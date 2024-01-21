@@ -8,13 +8,15 @@ from moveit_configs_utils import MoveItConfigsBuilder
 
 def generate_launch_description():
     moveit_config = (
-        MoveItConfigsBuilder("name", package_name="r85_moveit2_config")
+        MoveItConfigsBuilder("name", package_name="rg2_moveit_config")
         .planning_pipelines(pipelines=["ompl"])
         .robot_description(file_path="config/name.urdf.xacro")
         .trajectory_execution(file_path="config/moveit_controllers.yaml")
         .to_moveit_configs()
     )
-    # Pipeline Parameters for Constrained Planning
+
+
+    # Pipeline Parameters for Constrained Planning with Database
     '''
     moveit_config.planning_pipelines["ompl"]["ur_manipulator"][
         "enforce_constrained_state_space"
