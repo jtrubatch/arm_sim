@@ -17,6 +17,10 @@
 The task node may need to be relaunched if octomap is not cleared in time(planning will fail at the gasp/close gripper).
 
 ### Docker
+The dockerfile and compose are in the docker directory.
+
+Download the Image:
+    docker pull jtrubatch/arm_sim:latest
 Run the container with: 
     docker compose up -d
             OR
